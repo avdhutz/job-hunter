@@ -1,0 +1,5 @@
+{
+  "dependencies": ["."],
+  "graphs": { "job_hunter": "./job_hunter/graph.py:graph" },
+  "env": ".env"
+}

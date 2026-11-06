@@ -1,0 +1,34 @@
+[project]
+name = "job-hunter"
+version = "0.1.0"
+description = "LangGraph pipeline that finds, verifies, scores and stores industry + academic job postings"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "langgraph>=0.6",
+    "langchain-anthropic>=0.3",
+    "langsmith>=0.4",
+    "playwright>=1.48",
+    "httpx>=0.27",
+    "feedparser>=6.0",
+    "pydantic>=2.8",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "rapidfuzz>=3.9",
+    "pypdf>=5.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "langgraph-cli[inmem]>=0.3"]
+
+[project.scripts]
+job-hunter = "job_hunter.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

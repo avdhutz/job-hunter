@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    { "name": "job-hunter: run (dry-run)", "type": "debugpy", "request": "launch",
+      "module": "job_hunter.cli", "args": ["run", "--dry-run"], "envFile": "${workspaceFolder}/.env", "justMyCode": true },
+    { "name": "job-hunter: run industry only", "type": "debugpy", "request": "launch",
+      "module": "job_hunter.cli", "args": ["run", "--only", "industry", "--dry-run"], "envFile": "${workspaceFolder}/.env" },
+    { "name": "job-hunter: run academic only", "type": "debugpy", "request": "launch",
+      "module": "job_hunter.cli", "args": ["run", "--only", "academic", "--dry-run"], "envFile": "${workspaceFolder}/.env" },
+    { "name": "pytest", "type": "debugpy", "request": "launch", "module": "pytest", "args": ["-q"] }
+  ]
+}

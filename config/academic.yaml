@@ -1,0 +1,10 @@
+# Academic orgs. Flow: "<name> careers" -> careers site -> STAFF positions
+#   -> job category filter (below) -> postings.
+universities:
+  - { name: Indiana University }
+  - { name: Purdue University }
+  - { name: University of Illinois Urbana-Champaign }
+  - { name: University of Michigan }
+  - { name: Ohio State University }
+  - { name: Argonne National Laboratory }
+category_filters: ["Engineering", "Data Analytics", "Information Technology", "Research"]

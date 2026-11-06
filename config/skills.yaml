@@ -1,0 +1,21 @@
+# Used by the keyword scorer. weight: 1 (nice) .. 3 (core). Edit to match your resumes.
+must_have: [python, sql]
+skills:
+  python: 3
+  sql: 3
+  machine learning: 3
+  llm: 3
+  langgraph: 2
+  langchain: 2
+  rag: 2
+  pytorch: 2
+  scikit-learn: 2
+  pandas: 2
+  spark: 2
+  airflow: 1
+  aws: 2
+  docker: 1
+  tableau: 1
+  power bi: 1
+  statistics: 2
+  nlp: 2

@@ -1,0 +1,53 @@
+models:
+  agent: claude-sonnet-4-5        # browses careers sites, extracts postings
+  scorer: claude-haiku-5-5        # resume-vs-JD fit score
+
+resumes:
+  industry: ~/Documents/Resume/Industry/Avdhut_Zolekar_Resume.pdf
+  academic: "~/Documents/Resume/Academic/Avdhut Zolekar.pdf"
+
+database: data/jobs.db
+csv_export: data/jobs.csv
+
+verify:
+  max_age_days: 30
+  http_timeout_s: 10
+  concurrency: 10
+  title_match_threshold: 85
+  allowed_locations: ["United States", "US", "Remote"]
+  closed_markers:
+    - "no longer accepting"
+    - "position has been filled"
+    - "job not found"
+    - "this job is no longer available"
+
+agent_limits:
+  max_steps_per_org: 25           # LangGraph recursion limit per org
+  max_postings_per_org: 30
+
+# Role families in priority order; weight multiplies the fit score.
+role_families:
+  fde:
+    weight: 1.00
+    keywords: ["forward deployed", "fde", "solutions engineer", "deployment engineer", "field engineer"]
+  ai:
+    weight: 0.95
+    keywords: ["ai engineer", "llm", "generative ai", "applied ai", "artificial intelligence", "agent"]
+  ml:
+    weight: 0.90
+    keywords: ["machine learning", "ml engineer", "mlops", "deep learning", "research engineer"]
+  data_engineering:
+    weight: 0.85
+    keywords: ["data engineer", "analytics engineer", "data platform", "etl"]
+  data_analyst:
+    weight: 0.80
+    keywords: ["data analyst", "business intelligence", "bi analyst", "analytics analyst", "institutional research"]
+  data_science:
+    weight: 0.75
+    keywords: ["data scientist", "data science", "research data scientist", "statistician"]
+
+exclude_title_keywords: ["senior staff", "principal", "director", "vp ", "head of", "manager", "intern"]
+
+scoring:
+  keyword_weight: 0.4
+  llm_weight: 0.6
