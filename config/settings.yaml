@@ -1,6 +1,16 @@
 models:
   agent: claude-sonnet-4-5        # browses careers sites, extracts postings
   scorer: claude-haiku-5-5        # resume-vs-JD fit score
+  extractor: claude-haiku-5-5     # reads result lists / posting pages into fields (no navigation)
+
+# USD per million tokens. ASSUMED prices: check the Anthropic pricing page and edit.
+# cache_read / cache_write are multipliers on the input price.
+pricing:
+  claude-sonnet-4-5: { input: 3.0, output: 15.0 }
+  claude-haiku-5-5: { input: 1.0, output: 5.0 }
+  cache_read: 0.1
+  cache_write: 1.25
+  web_search_per_1000: 10.0
 
 resumes:
   industry: ~/Documents/Resume/Industry/Avdhut_Zolekar_Resume.pdf
@@ -14,40 +24,164 @@ verify:
   http_timeout_s: 10
   concurrency: 10
   title_match_threshold: 85
-  allowed_locations: ["United States", "US", "Remote"]
   closed_markers:
     - "no longer accepting"
     - "position has been filled"
     - "job not found"
     - "this job is no longer available"
+  # visa_sponsorship = "no" when the description contains any of these (case-insensitive).
+  no_visa_phrases:
+    - "will not sponsor"
+    - "unable to sponsor"
+    - "cannot sponsor"
+    - "not able to sponsor"
+    - "no visa sponsorship"
+    - "without sponsorship"
+    - "not eligible for visa sponsorship"
+    - "does not provide visa sponsorship"
+
+# Seniority rules (decision 6). Whole-word / whole-phrase, case-insensitive, on the title.
+seniority:
+  exclude: ["principal", "distinguished", "director", "head of", "vp", "vice president",
+            "manager", "intern", "internship", "co-op", "lead", "staff"]
+  # Academic searches already sit in the staff section, so bare "staff" is not an exclusion;
+  # only these whole phrases are.
+  academic_exclude: ["principal", "distinguished", "director", "head of", "vp", "vice president",
+                     "manager", "intern", "internship", "co-op", "lead", "senior staff",
+                     "staff scientist"]
+  # Level numbers at or above this are excluded: "Engineer IV", "Data Scientist 5".
+  max_level: 3
+
+locations:
+  country_terms: ["united states", "usa", "us", "u.s.", "u.s.a."]
+  non_us_terms: ["canada", "uk", "united kingdom", "india", "germany", "ireland", "france",
+                 "australia", "japan", "singapore", "brazil", "mexico", "netherlands",
+                 "israel", "emea", "apac", "europe"]
+  us_states:
+    Alabama: AL
+    Alaska: AK
+    Arizona: AZ
+    Arkansas: AR
+    California: CA
+    Colorado: CO
+    Connecticut: CT
+    Delaware: DE
+    Florida: FL
+    Georgia: GA
+    Hawaii: HI
+    Idaho: ID
+    Illinois: IL
+    Indiana: IN
+    Iowa: IA
+    Kansas: KS
+    Kentucky: KY
+    Louisiana: LA
+    Maine: ME
+    Maryland: MD
+    Massachusetts: MA
+    Michigan: MI
+    Minnesota: MN
+    Mississippi: MS
+    Missouri: MO
+    Montana: MT
+    Nebraska: NE
+    Nevada: NV
+    New Hampshire: NH
+    New Jersey: NJ
+    New Mexico: NM
+    New York: NY
+    North Carolina: NC
+    North Dakota: ND
+    Ohio: OH
+    Oklahoma: OK
+    Oregon: OR
+    Pennsylvania: PA
+    Rhode Island: RI
+    South Carolina: SC
+    South Dakota: SD
+    Tennessee: TN
+    Texas: TX
+    Utah: UT
+    Vermont: VT
+    Virginia: VA
+    Washington: WA
+    West Virginia: WV
+    Wisconsin: WI
+    Wyoming: WY
+    District of Columbia: DC
+
+# Tracking params dropped when normalizing links (decision 4).
+link_normalization:
+  strip_params: ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+                 "gh_src", "gh_jid_src", "lever-source", "lever-origin", "source", "src",
+                 "ref", "referrer", "fbclid", "gclid", "mc_cid", "mc_eid"]
 
 agent_limits:
   max_steps_per_org: 25           # LangGraph recursion limit per org
   max_postings_per_org: 30
+  agent_concurrency: 3            # orgs browsed by the agent at once
+  max_listing_pages: 3            # result pages read per org
+  page_text_chars: 6000           # visible text sent to the extractor per page
+  description_chars: 6000         # stored/scored description length
+
+run_budget:
+  max_cost_usd: 5.0               # stop launching new agents past this
+
+min_score: 0                      # postings below this final score are not stored
 
 # Role families in priority order; weight multiplies the fit score.
+# Tuned to the resume (AI/ML engineer: GenAI, RAG, agents, MLOps; past data scientist/analyst).
+# Matching is whole-word / whole-phrase; short tokens (ml, bi, etl, fde, ...) are never
+# substring-matched. `generic_titles` (plain "Software Engineer") only qualify if a family
+# keyword also appears in the department or the start of the description.
 role_families:
   fde:
     weight: 1.00
-    keywords: ["forward deployed", "fde", "solutions engineer", "deployment engineer", "field engineer"]
+    keywords: ["forward deployed", "forward-deployed", "fde", "deployment engineer",
+               "deployed engineer", "applied ai engineer"]
   ai:
     weight: 0.95
-    keywords: ["ai engineer", "llm", "generative ai", "applied ai", "artificial intelligence", "agent"]
+    keywords: ["ai engineer", "ai developer", "ai scientist", "ai researcher", "llm",
+               "generative ai", "gen ai", "genai", "applied ai", "artificial intelligence",
+               "ai/ml", "ml/ai", "ai agent", "agent engineer", "agentic", "prompt engineer",
+               "nlp", "natural language", "conversational ai", "ai software", "ai platform",
+               "rag", "responsible ai", "ai evaluation", "evals engineer"]
   ml:
     weight: 0.90
-    keywords: ["machine learning", "ml engineer", "mlops", "deep learning", "research engineer"]
+    keywords: ["machine learning", "ml engineer", "ml scientist", "mlops", "ml ops", "ml",
+               "deep learning", "research engineer", "applied scientist", "applied research",
+               "research scientist", "computer vision", "model engineer", "ml platform",
+               "ml infrastructure", "model deployment", "inference engineer", "applied ml"]
   data_engineering:
     weight: 0.85
-    keywords: ["data engineer", "analytics engineer", "data platform", "etl"]
+    keywords: ["data engineer", "analytics engineer", "data platform", "etl", "elt",
+               "data pipeline", "data infrastructure", "big data", "data warehouse",
+               "data integration", "dataops", "data developer", "data software engineer",
+               "streaming engineer", "pipeline engineer"]
   data_analyst:
     weight: 0.80
-    keywords: ["data analyst", "business intelligence", "bi analyst", "analytics analyst", "institutional research"]
+    keywords: ["data analyst", "business intelligence", "bi analyst", "bi developer",
+               "bi engineer", "analytics analyst", "institutional research", "reporting analyst",
+               "insights analyst", "product analyst", "decision science", "data visualization",
+               "data analytics", "analytics specialist"]
   data_science:
     weight: 0.75
-    keywords: ["data scientist", "data science", "research data scientist", "statistician"]
+    keywords: ["data scientist", "data science", "research data scientist", "statistician",
+               "biostatistician", "applied statistics", "decision scientist",
+               "research software engineer"]
 
-exclude_title_keywords: ["senior staff", "principal", "director", "vp ", "head of", "manager", "intern"]
+# A title containing any of these is never a match, whatever else it says (pre-sales,
+# architect, account-facing and support roles don't fit the resume).
+title_exclude: ["architect", "sales", "pre-sales", "presales", "account executive",
+                "technical account", "customer success", "support engineer", "recruiter",
+                "partner manager", "solutions engineer", "solutions consultant"]
+
+generic_titles: ["software engineer", "software developer", "developer", "programmer",
+                 "analyst", "engineer", "scientist", "researcher", "specialist", "associate",
+                 "research associate", "research specialist", "research programmer"]
 
 scoring:
   keyword_weight: 0.4
   llm_weight: 0.6
+  # A JD that names this share of the (weighted) skills list scores 100 on the keyword part.
+  keyword_saturation: 0.4

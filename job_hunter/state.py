@@ -15,3 +15,7 @@ class State(TypedDict, total=False):
     verified: list[JobPosting]
     rejected: list[Rejection]
     scored: list[ScoredPosting]
+    # Per-org counts (fetched / filtered out / kept / error) for the end-of-run summary.
+    org_stats: Annotated[list[dict], operator.add]
+    # Recipe / status changes per org, written by persist_node (skipped on dry runs).
+    org_updates: Annotated[list[dict], operator.add]

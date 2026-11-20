@@ -6,5 +6,5 @@ universities:
   - { name: University of Illinois Urbana-Champaign }
   - { name: University of Michigan }
   - { name: Ohio State University }
-  - { name: Argonne National Laboratory }
-category_filters: ["Engineering", "Data Analytics", "Information Technology", "Research"]
+category_filters:
+  ["Engineering", "Data Analytics", "Information Technology", "Research"]

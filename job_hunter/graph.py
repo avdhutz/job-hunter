@@ -26,6 +26,8 @@ def persist_node(state: State) -> dict:
     if not state.get("dry_run"):
         db.insert_jobs(state.get("scored", []), state["run_id"])
         db.insert_rejected(state.get("rejected", []), state["run_id"])
+        for u in state.get("org_updates", []):
+            db.apply_org_update(u)
     return {}
 
 

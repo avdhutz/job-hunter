@@ -1,0 +1,5 @@
+[{"id": "a", "text": "AI Engineer I", "hostedUrl": "https://jobs.lever.co/acme/a", "createdAt": 1793000000000,
+  "categories": {"location": "Palo Alto, CA", "allLocations": ["Palo Alto, CA", "London"], "team": "AI"},
+  "descriptionPlain": "Build agents."},
+ {"id": "b", "text": "Sales Director", "hostedUrl": "https://jobs.lever.co/acme/b", "createdAt": 1793000000000,
+  "categories": {"location": "Austin, TX"}, "descriptionPlain": ""}]

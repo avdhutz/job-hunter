@@ -1,21 +1,60 @@
-# Used by the keyword scorer. weight: 1 (nice) .. 3 (core). Edit to match your resumes.
-must_have: [python, sql]
+# Used by the keyword scorer. weight: 1 (nice) .. 3 (core). Built from the resume skills section.
+# It is not a filter: a JD that names none of these is still scored by the Haiku fit score.
 skills:
+  # core
   python: 3
   sql: 3
-  machine learning: 3
   llm: 3
-  langgraph: 2
-  langchain: 2
-  rag: 2
-  pytorch: 2
-  scikit-learn: 2
-  pandas: 2
-  spark: 2
-  airflow: 1
+  rag: 3
+  langgraph: 3
+  langchain: 3
+  agents: 3
+  machine learning: 3
+  pytorch: 3
+  generative ai: 3
+  # strong
+  fine-tuning: 2
+  lora: 2
+  prompt engineering: 2
+  embeddings: 2
+  vector database: 2
+  mcp: 2
+  tool calling: 2
+  function calling: 2
+  mlflow: 2
+  mlops: 2
+  fastapi: 2
   aws: 2
-  docker: 1
-  tableau: 1
-  power bi: 1
-  statistics: 2
+  sagemaker: 2
+  bedrock: 2
+  docker: 2
+  kubernetes: 2
+  pyspark: 2
+  spark: 2
+  airflow: 2
+  tensorflow: 2
+  scikit-learn: 2
+  xgboost: 2
+  hugging face: 2
+  transformers: 2
+  evaluation: 2
   nlp: 2
+  pandas: 2
+  statistics: 2
+  # nice
+  kafka: 1
+  etl: 1
+  terraform: 1
+  ci/cd: 1
+  pinecone: 1
+  faiss: 1
+  azure: 1
+  vertex ai: 1
+  power bi: 1
+  tableau: 1
+  typescript: 1
+  a/b testing: 1
+  observability: 1
+  model monitoring: 1
+  shap: 1
+  streamlit: 1

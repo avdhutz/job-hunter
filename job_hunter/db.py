@@ -3,7 +3,7 @@
 import csv
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from job_hunter import config
 from job_hunter.models import Rejection, ScoredPosting
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     llm_score REAL,
     reason TEXT,
     visa_sponsorship TEXT,
+    link_verified INTEGER NOT NULL DEFAULT 0,
     department TEXT,
     position_type TEXT,
     closing_date TEXT,
@@ -39,12 +40,15 @@ CREATE TABLE IF NOT EXISTS orgs (
     name TEXT PRIMARY KEY,
     sector TEXT NOT NULL,
     careers_url TEXT,
-    recipe_json TEXT,            -- saved navigation steps / filtered results URL
+    recipe_json TEXT,            -- navigation steps, filtered-results URL, page markers
+    zero_streak INTEGER NOT NULL DEFAULT 0, -- consecutive runs with zero postings
+    last_nonzero_at TEXT,
     status TEXT DEFAULT 'active' -- active | pending | ignored
 );
 """
 
-EXPORT_COLUMNS = ["company", "role", "posted_date", "link", "applied", "final_score", "sector"]
+EXPORT_COLUMNS = ["company", "role", "posted_date", "link", "applied", "final_score", "sector",
+                  "visa_sponsorship", "link_verified"]
 
 
 @contextmanager
@@ -62,12 +66,49 @@ def connect():
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def _exists() -> bool:
+    return config.path(config.settings()["database"]).exists()
 
 
 def known_links() -> set[str]:
+    if not _exists():  # a dry run before the first real run must not create the file
+        return set()
     with connect() as conn:
         return {r["link"] for r in conn.execute("SELECT link FROM jobs")}
+
+
+ZERO_STREAK_FORCE_AGENT = 3
+
+
+def get_org(name: str) -> dict | None:
+    if not _exists():
+        return None
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM orgs WHERE name = ?", (name,)).fetchone()
+    return dict(row) if row else None
+
+
+def apply_org_update(u: dict) -> None:
+    """Upsert an org after a run. u: name, sector, status, count, and optionally careers_url
+    and recipe_json (set only when the agent just produced a new recipe)."""
+    now = _now()
+    with connect() as conn:
+        conn.execute("INSERT OR IGNORE INTO orgs (name, sector) VALUES (?, ?)",
+                     (u["name"], u["sector"]))
+        if u.get("recipe_json"):
+            conn.execute("UPDATE orgs SET recipe_json = ?, careers_url = ? WHERE name = ?",
+                         (u["recipe_json"], u.get("careers_url"), u["name"]))
+        conn.execute("UPDATE orgs SET status = ? WHERE name = ?", (u["status"], u["name"]))
+        if u["status"] == "active":
+            if u["count"] > 0:
+                conn.execute("UPDATE orgs SET zero_streak = 0, last_nonzero_at = ? WHERE name = ?",
+                             (now, u["name"]))
+            else:
+                conn.execute("UPDATE orgs SET zero_streak = zero_streak + 1 WHERE name = ?",
+                             (u["name"],))
 
 
 def insert_jobs(scored: list[ScoredPosting], run_id: str) -> int:
@@ -77,15 +118,15 @@ def insert_jobs(scored: list[ScoredPosting], run_id: str) -> int:
         rows.append((
             p.company, p.role, p.posted_date and p.posted_date.isoformat(), p.link, p.sector,
             p.role_family, p.location, p.source, s.final_score, s.keyword_score, s.llm_score,
-            s.reason, s.visa_sponsorship, p.department, p.position_type,
+            s.reason, s.visa_sponsorship, int(p.link_verified), p.department, p.position_type,
             p.closing_date and p.closing_date.isoformat(), p.description, _now(), run_id,
         ))
     with connect() as conn:
         cur = conn.executemany(
             """INSERT OR IGNORE INTO jobs (company, role, posted_date, link, sector, role_family,
                location, source, final_score, keyword_score, llm_score, reason, visa_sponsorship,
-               department, position_type, closing_date, description, first_seen_at, run_id)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               link_verified, department, position_type, closing_date, description, first_seen_at, run_id)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             rows,
         )
         return cur.rowcount
@@ -122,6 +163,7 @@ def export_csv() -> str:
         ).fetchall()
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Company", "Role", "Posted date", "Link", "Applied", "Score", "Sector"])
+        w.writerow(["Company", "Role", "Posted date", "Link", "Applied", "Score", "Sector",
+                    "Visa sponsorship", "Link verified"])
         w.writerows([tuple(r) for r in rows])
     return str(out)

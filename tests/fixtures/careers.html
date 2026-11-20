@@ -1,0 +1,13 @@
+<!doctype html><html><body>
+<h1>Careers at Acme</h1>
+<label>Category <select id="cat" name="category"><option>All</option><option>Data Analytics</option><option>Engineering</option></select></label>
+<button id="go">Search</button>
+<div id="out"></div>
+<script>
+document.getElementById('go').onclick = () => {
+  const c = document.getElementById('cat').value;
+  document.getElementById('out').innerHTML = '<p>Filter: ' + c + '</p><p>3 results</p>' +
+    '<a href="job1.html">Data Engineer II</a><br><a href="job2.html">Account Executive</a><br>' +
+    '<a href="job3.html">Principal Data Scientist</a><br><a href="job4.html">Data Analyst</a>';
+};
+</script></body></html>
