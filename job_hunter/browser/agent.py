@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass, field
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import create_react_agent
 
@@ -74,6 +74,15 @@ def _steps(org: dict, sector: Sector, categories: list[str]) -> str:
     return tmpl.format(org=org["name"], categories=", ".join(categories))
 
 
+def _drop_thinking(m):
+    """Editing old tool results invalidates the signatures on thinking blocks, so send none."""
+    if isinstance(m, AIMessage) and isinstance(m.content, list):
+        kept = [b for b in m.content
+                if not (isinstance(b, dict) and b.get("type") in ("thinking", "redacted_thinking"))]
+        return m.model_copy(update={"content": kept})
+    return m
+
+
 def _trim_history(state: dict) -> dict:
     """Snapshots are big and only the newest matters: blank older tool results so the cost
     of a long navigation doesn't grow with every step."""
@@ -82,7 +91,7 @@ def _trim_history(state: dict) -> dict:
     stale = set(tool_idx[:-2])
     out = [
         ToolMessage(content="[earlier page omitted]", tool_call_id=m.tool_call_id, name=m.name)
-        if i in stale else m
+        if i in stale else _drop_thinking(m)
         for i, m in enumerate(msgs)
     ]
     return {"llm_input_messages": out}
@@ -90,7 +99,7 @@ def _trim_history(state: dict) -> dict:
 
 def _build_agent(b: OrgBrowser, org: dict, sector: Sector, categories: list[str]):
     model = ChatAnthropic(
-        model=config.settings()["models"]["agent"], temperature=0, max_tokens=2000,
+        model=config.settings()["models"]["agent"], max_tokens=2000,
         callbacks=[budget.UsageCallback()],
     )
     web_search = {"type": "web_search_20250305", "name": "web_search", "max_uses": 3}

@@ -4,13 +4,14 @@ final = (keyword_weight * keyword + llm_weight * llm) * role_family_weight
 """
 
 import asyncio
+import json
 import logging
 from functools import lru_cache
 from typing import Literal
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from job_hunter import config, resume
 from job_hunter.budget import UsageCallback
@@ -21,12 +22,26 @@ log = logging.getLogger(__name__)
 SCORE_CONCURRENCY = 5
 
 
+def _as_list(v):
+    """Haiku occasionally returns a list as a JSON string."""
+    if isinstance(v, str):
+        try:
+            v = json.loads(v)
+        except ValueError:
+            v = [v]
+    return v
+
+
 class FitResult(BaseModel):
     fit_score: int = Field(ge=0, le=100, description="How well the resume fits this posting")
     matched_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
     visa_sponsorship: Literal["yes", "no", "unknown"] = "unknown"
     reason: str = Field(description="One or two sentences")
+
+    _visa = field_validator("visa_sponsorship", mode="before")(
+        lambda v: v.strip().strip("\"'").lower() if isinstance(v, str) else v)
+    _lists = field_validator("matched_skills", "missing_skills", mode="before")(_as_list)
 
 
 def keyword_score(description: str) -> float:
@@ -59,7 +74,7 @@ reason: one or two sentences.
 @lru_cache
 def _model():
     return ChatAnthropic(
-        model=config.settings()["models"]["scorer"], max_tokens=600, temperature=0,
+        model=config.settings()["models"]["scorer"], max_tokens=600,
         callbacks=[UsageCallback()],
     ).with_structured_output(FitResult)
 

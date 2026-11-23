@@ -1,12 +1,12 @@
 models:
-  agent: claude-sonnet-4-5        # browses careers sites, extracts postings
+  agent: claude-sonnet-5-5        # browses careers sites, extracts postings
   scorer: claude-haiku-5-5        # resume-vs-JD fit score
   extractor: claude-haiku-5-5     # reads result lists / posting pages into fields (no navigation)
 
 # USD per million tokens. ASSUMED prices: check the Anthropic pricing page and edit.
 # cache_read / cache_write are multipliers on the input price.
 pricing:
-  claude-sonnet-4-5: { input: 3.0, output: 15.0 }
+  claude-sonnet-5-5: { input: 3.0, output: 15.0 }
   claude-haiku-5-5: { input: 1.0, output: 5.0 }
   cache_read: 0.1
   cache_write: 1.25

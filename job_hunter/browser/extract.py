@@ -53,7 +53,7 @@ for anything not on the page. Do not guess."""
 @lru_cache
 def _models():
     m = config.settings()["models"]["extractor"]
-    kw = {"model": m, "temperature": 0, "callbacks": [UsageCallback()]}
+    kw = {"model": m, "callbacks": [UsageCallback()]}
     return (ChatAnthropic(max_tokens=3000, **kw).with_structured_output(Listing),
             ChatAnthropic(max_tokens=400, **kw).with_structured_output(Detail))
 
